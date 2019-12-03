@@ -1,4 +1,4 @@
-package pchila.commitreader.core;
+package pchila.commitviewer.core;
 
 public class CommitSourceException extends Exception {
 

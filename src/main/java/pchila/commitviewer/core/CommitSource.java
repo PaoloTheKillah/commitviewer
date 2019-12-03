@@ -1,4 +1,4 @@
-package pchila.commitreader.core;
+package pchila.commitviewer.core;
 
 import java.util.stream.Stream;
 
