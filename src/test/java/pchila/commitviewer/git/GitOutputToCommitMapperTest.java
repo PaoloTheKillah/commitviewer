@@ -28,8 +28,7 @@ public class GitOutputToCommitMapperTest {
                 entry(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_NAME.ordinal(), "blah"),
                 entry(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_MAIL.ordinal(), "abc@def.xyz"),
                 entry(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_DATE.ordinal(), now.format(DateTimeFormatter.ISO_DATE_TIME)),
-                entry(GitOutputToCommitMapper.FormatStringSpecifiers.SUBJECT.ordinal(), "subject line"),
-                entry(GitOutputToCommitMapper.FormatStringSpecifiers.BODY.ordinal(), "body line1\nline2\nline3"),
+                entry(GitOutputToCommitMapper.FormatStringSpecifiers.MESSAGE.ordinal(), "subject line\n\nbody line1\nline2\nline3"),
                 entry(GitOutputToCommitMapper.FormatStringSpecifiers.REFS.ordinal(), "ref1, ref2"),
                 entry(GitOutputToCommitMapper.FormatStringSpecifiers.PARENT_COMMITS.ordinal(), "commit1 commit2")
         );
@@ -40,20 +39,17 @@ public class GitOutputToCommitMapperTest {
 
         var expectedCommit = new Commit(
                 sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.HASH.ordinal()),
-                new Commit.Author(
+                new Commit.Developer(
                         sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.AUTHOR_NAME.ordinal()),
-                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.AUTHOR_MAIL.ordinal())
+                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.AUTHOR_MAIL.ordinal()),
+                        now
                 ),
-                new Commit.Message(
-                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.SUBJECT.ordinal()),
-                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.BODY.ordinal())
-                ),
-                now,
-                new Commit.Author(
+                new Commit.Developer(
                         sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_NAME.ordinal()),
-                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_MAIL.ordinal())
+                        sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.COMMITTER_MAIL.ordinal()),
+                        now
                 ),
-                now,
+                sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.MESSAGE.ordinal()),
                 sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.REFS.ordinal()).split(", "),
                 sampleCommitData.get(GitOutputToCommitMapper.FormatStringSpecifiers.PARENT_COMMITS.ordinal()).split(" ")
         );

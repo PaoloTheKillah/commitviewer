@@ -5,8 +5,6 @@ import org.junit.Test;
 import pchila.commitviewer.core.CommitSourceException;
 import pchila.commitviewer.git.GitSource;
 
-import java.util.stream.Collectors;
-
 import static org.junit.Assert.assertEquals;
 
 public class GitWrapperTest {
@@ -18,8 +16,8 @@ public class GitWrapperTest {
 
     @Test
     public void fetchEmptyRepository() throws GitWrapperException {
-        var wrapper = new GitWrapper(EMPTY_REPO_URL);
-        wrapper.fetch();
+        var wrapper = new GitWrapper();
+        wrapper.fetch(EMPTY_REPO_URL);
     }
 
     @Test(expected = GitWrapperException.class)
@@ -29,7 +27,7 @@ public class GitWrapperTest {
     }
 
     @Test(expected = GitWrapperException.class)
-    @Ignore("With the current Scanner implementation we cant detect this")
+    @Ignore("With the current Scanner implementation we can't detect this")
     public void logEmptyRepositoryShouldThrow() throws GitWrapperException {
         var wrapper = new GitWrapper(EMPTY_REPO_URL);
         wrapper.fetch();
@@ -40,13 +38,13 @@ public class GitWrapperTest {
     public void logSampleRepositoryAndCountCommits() throws GitWrapperException, CommitSourceException {
         var wrapper = new GitWrapper(SAMPLE_REPO_URL);
         wrapper.fetch();
-        var commitCount = wrapper.log("%H", "\n").collect(Collectors.counting());
+        var commitCount = wrapper.log("%H", "\n").count();
         assertEquals(3, (long)commitCount);
 
         // Make sure that we can use the commands issued when displaying commits
 
         var source = new GitSource(wrapper);
-        var readCommits = source.readCommits().collect(Collectors.counting());
+        var readCommits = source.readCommits().count();
         assertEquals((long)commitCount, (long)readCommits);
     }
 }

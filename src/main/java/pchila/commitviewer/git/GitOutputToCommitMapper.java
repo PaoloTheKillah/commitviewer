@@ -1,7 +1,7 @@
 package pchila.commitviewer.git;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pchila.commitviewer.core.Commit;
 
 import java.time.ZonedDateTime;
@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 class GitOutputToCommitMapper {
 
-    private static final Logger LOGGER = LogManager.getLogger(GitOutputToCommitMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(GitOutputToCommitMapper.class);
     private static final String FIELD_SEPARATOR = "\0";
     private static final char RS_CHAR = 0x1e;
     public static final String RECORD_SEPARATOR = new String(new char[]{RS_CHAR, '\n'});
@@ -28,31 +28,24 @@ class GitOutputToCommitMapper {
         return gitLogOutput.map(commitString -> parseCommit(commitString));
     }
 
-//    Stream<String> splitCommits(String gitLogOutput) {
-//        if(gitLogOutput.isEmpty())
-//            return Stream.empty();
-//
-//        return Arrays.stream(gitLogOutput.split(RECORD_SEPARATOR));
-//    }
-
     Commit parseCommit(String rawCommit) {
-        LOGGER.debug("Raw commit:{}", rawCommit);
+        logger.debug("Raw commit:{}", rawCommit);
         String[] splitCommit = rawCommit.split(FIELD_SEPARATOR, -1);
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Split commit:{}", Arrays.toString(splitCommit));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Split commit:{}", Arrays.toString(splitCommit));
         }
         return new Commit(splitCommit[FormatStringSpecifiers.HASH.ordinal()],
-                new Commit.Author(
+                new Commit.Developer(
                         splitCommit[FormatStringSpecifiers.AUTHOR_NAME.ordinal()],
-                        splitCommit[FormatStringSpecifiers.AUTHOR_MAIL.ordinal()]),
-                new Commit.Message(splitCommit[FormatStringSpecifiers.SUBJECT.ordinal()],
-                        splitCommit[FormatStringSpecifiers.BODY.ordinal()]
+                        splitCommit[FormatStringSpecifiers.AUTHOR_MAIL.ordinal()],
+                        ZonedDateTime.parse(splitCommit[FormatStringSpecifiers.AUTHOR_DATE.ordinal()])
                 ),
-                ZonedDateTime.parse(splitCommit[FormatStringSpecifiers.AUTHOR_DATE.ordinal()]),
-                new Commit.Author(
+                new Commit.Developer(
                         splitCommit[FormatStringSpecifiers.COMMITTER_NAME.ordinal()],
-                        splitCommit[FormatStringSpecifiers.COMMITTER_MAIL.ordinal()]),
-                ZonedDateTime.parse(splitCommit[FormatStringSpecifiers.COMMITTER_DATE.ordinal()]),
+                        splitCommit[FormatStringSpecifiers.COMMITTER_MAIL.ordinal()],
+                        ZonedDateTime.parse(splitCommit[FormatStringSpecifiers.COMMITTER_DATE.ordinal()])
+                ),
+                splitCommit[FormatStringSpecifiers.MESSAGE.ordinal()],
                 splitCommit[FormatStringSpecifiers.REFS.ordinal()].split(", "),
                 splitCommit[FormatStringSpecifiers.PARENT_COMMITS.ordinal()].split(" ")
         );
@@ -66,8 +59,7 @@ class GitOutputToCommitMapper {
         COMMITTER_NAME("%cN"),
         COMMITTER_MAIL("%cE"),
         COMMITTER_DATE("%cI"),
-        SUBJECT("%s"),
-        BODY("%b"),
+        MESSAGE("%B"),
         REFS("%D"),
         PARENT_COMMITS("%P");
 

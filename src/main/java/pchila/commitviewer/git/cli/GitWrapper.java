@@ -1,22 +1,18 @@
 package pchila.commitviewer.git.cli;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.Scanner;
 import java.util.stream.Stream;
 
 public class GitWrapper {
 
-    private final static Logger LOGGER = LogManager.getLogger(GitWrapper.class);
-    private final String repositoryLocation;
+    private final static Logger logger = LoggerFactory.getLogger(GitWrapper.class);
     private File tempDir;
-
-    public GitWrapper(String repositoryLocation) {
-        this.repositoryLocation = repositoryLocation;
-    }
 
     private static void checkGitProcessReturnValue(Process gitProcess) throws GitWrapperException {
         try {
@@ -54,53 +50,38 @@ public class GitWrapper {
         return builder.toString();
     }
 
-    public void fetch() throws GitWrapperException {
-        if (this.tempDir == null) {
-            gitClone();
-        } else {
-            gitFetch();
-        }
-    }
-
-    private void gitClone() throws GitWrapperException {
+    public void fetch(URL repositoryUrl) throws GitWrapperException {
         try {
             this.tempDir = Files.createTempDirectory("commitviewer").toFile();
             this.tempDir.deleteOnExit();
-            LOGGER.debug("Cloning {} into {}", this.repositoryLocation, this.tempDir.getAbsolutePath());
+            logger.debug("Cloning {} into {}", repositoryUrl, this.tempDir.getAbsolutePath());
             Process gitProcess = null;
-            gitProcess = new ProcessBuilder("git", "clone", "--bare", repositoryLocation, tempDir.getAbsolutePath()).start();
+            gitProcess = new ProcessBuilder("git", "clone", "--bare", repositoryUrl.toExternalForm(), tempDir.getAbsolutePath()).start();
             gitProcess.waitFor();
-            LOGGER.debug("Clone command completed!");
+            logger.debug("Clone command completed!");
             checkGitProcessReturnValue(gitProcess);
         } catch (IOException | InterruptedException e) {
             throw new GitWrapperException("Error cloning repository", e);
         }
     }
 
-    private void gitFetch() throws GitWrapperException {
+    public Stream<String> log(String logFormat, String delimiter, int page, int pageSize) throws GitWrapperException {
+        Process gitProcess;
         try {
-            Process gitProcess = null;
-            LOGGER.debug("Fetching {} into {}", this.repositoryLocation, this.tempDir.getAbsolutePath());
-            gitProcess = new ProcessBuilder("git", "--git-dir=" + tempDir.getAbsolutePath(), "fetch").start();
-            gitProcess.waitFor();
-            LOGGER.debug("Fetch command completed!");
-            checkGitProcessReturnValue(gitProcess);
-        } catch (IOException | InterruptedException e) {
-            throw new GitWrapperException("Error fetching repository", e);
-        }
-    }
-
-    public Stream<String> log(String logFormat, String delimiter) throws GitWrapperException {
-        Process gitProcess = null;
-        try {
-            gitProcess = new ProcessBuilder("git", "--git-dir=" + this.tempDir.getAbsolutePath(), "log", "--format=" + logFormat).start();
-            LOGGER.debug("Launched git process with pid {} with arguments {}", gitProcess.pid(), gitProcess.info().commandLine());
+            gitProcess = new ProcessBuilder(
+                    "git",
+                    "--git-dir=" + this.tempDir.getAbsolutePath(),
+                    "log",
+                    "--format=" + logFormat,
+                    "-n", Integer.toString(pageSize),
+                    "--skip", Integer.toString((page-1)*pageSize)).start();
+            logger.debug("Launched git process with pid {} with arguments {}", gitProcess.pid(), gitProcess.info().commandLine());
             gitProcess.onExit().thenAccept( p -> {
                 // TODO this should be handled in a different way: we should warn the user if still possible (i.e. we did not complete the output yet)
                 try {
                     checkGitProcessReturnValue(p);
                 } catch (GitWrapperException e) {
-                    LOGGER.error("Git process " + p.pid() + " terminated abnormally during log.", e);
+                    logger.error("Git process " + p.pid() + " terminated abnormally during log.", e);
                 }
             });
         } catch (IOException e) {
