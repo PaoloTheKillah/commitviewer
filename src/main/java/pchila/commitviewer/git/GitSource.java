@@ -18,12 +18,10 @@ public class GitSource implements CommitSource {
         {
             GitWrapper wrapper = new GitWrapper();
             GitOutputToCommitMapper mapper = new GitOutputToCommitMapper();
-            try {
-                wrapper.fetch(repositoryUrl);
-                return mapper.streamCommits(wrapper.log(GIT_FORMAT_ARG, GitOutputToCommitMapper.RECORD_SEPARATOR, page, pageSize));
-            } catch (GitWrapperException e) {
-                throw new CommitSourceException("Error retrieving commit log.", e);
-            }
+
+            wrapper.fetch(repositoryUrl);
+            return mapper.streamCommits(wrapper.log(GIT_FORMAT_ARG, GitOutputToCommitMapper.RECORD_SEPARATOR, page, pageSize));
+
         }
     }
 

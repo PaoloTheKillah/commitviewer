@@ -2,11 +2,15 @@ package pchila.commitviewer.git.cli;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pchila.commitviewer.core.CommitReadException;
+import pchila.commitviewer.core.CommitSourceException;
+import pchila.commitviewer.core.RepositoryNotAvailableException;
 
 import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Scanner;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 public class GitWrapper {
@@ -50,7 +54,7 @@ public class GitWrapper {
         return builder.toString();
     }
 
-    public void fetch(URL repositoryUrl) throws GitWrapperException {
+    public void fetch(URL repositoryUrl) throws CommitSourceException {
         try {
             this.tempDir = Files.createTempDirectory("commitviewer").toFile();
             this.tempDir.deleteOnExit();
@@ -60,12 +64,12 @@ public class GitWrapper {
             gitProcess.waitFor();
             logger.debug("Clone command completed!");
             checkGitProcessReturnValue(gitProcess);
-        } catch (IOException | InterruptedException e) {
-            throw new GitWrapperException("Error cloning repository", e);
+        } catch (IOException | InterruptedException | GitWrapperException e) {
+            throw new RepositoryNotAvailableException("Error cloning repository " + repositoryUrl.toExternalForm(), e);
         }
     }
 
-    public Stream<String> log(String logFormat, String delimiter, int page, int pageSize) throws GitWrapperException {
+    public Stream<String> log(String logFormat, String delimiter, int page, int pageSize) throws CommitSourceException {
         Process gitProcess;
         try {
             gitProcess = new ProcessBuilder(
@@ -77,15 +81,15 @@ public class GitWrapper {
                     "--skip", Integer.toString((page-1)*pageSize)).start();
             logger.debug("Launched git process with pid {} with arguments {}", gitProcess.pid(), gitProcess.info().commandLine());
             gitProcess.onExit().thenAccept( p -> {
-                // TODO this should be handled in a different way: we should warn the user if still possible (i.e. we did not complete the output yet)
                 try {
                     checkGitProcessReturnValue(p);
                 } catch (GitWrapperException e) {
-                    logger.error("Git process " + p.pid() + " terminated abnormally during log.", e);
+                    throw new RuntimeException(e);
                 }
+
             });
-        } catch (IOException e) {
-            throw new GitWrapperException("Unable to start git process.", e);
+        } catch (IOException|CompletionException e) {
+            throw new CommitReadException("Unable to start git log process.", e);
         }
 
         return new Scanner(gitProcess.getInputStream()).useDelimiter(delimiter).tokens();

@@ -2,8 +2,13 @@ package pchila.commitviewer.git.cli;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import pchila.commitviewer.core.CommitReadException;
 import pchila.commitviewer.core.CommitSourceException;
+import pchila.commitviewer.core.RepositoryNotAvailableException;
 import pchila.commitviewer.git.GitSource;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import static org.junit.Assert.assertEquals;
 
@@ -15,36 +20,36 @@ public class GitWrapperTest {
 
 
     @Test
-    public void fetchEmptyRepository() throws GitWrapperException {
+    public void fetchEmptyRepository() throws CommitSourceException, MalformedURLException {
         var wrapper = new GitWrapper();
-        wrapper.fetch(EMPTY_REPO_URL);
+        wrapper.fetch(new URL(EMPTY_REPO_URL));
     }
 
-    @Test(expected = GitWrapperException.class)
-    public void fetchNonExistingRepositoryShouldThrow() throws GitWrapperException {
-        var wrapper = new GitWrapper(NONEXISTENT_OR_PRIVATE_REPO_URL);
-        wrapper.fetch();
+    @Test(expected = RepositoryNotAvailableException.class)
+    public void fetchNonExistingRepositoryShouldThrow() throws CommitSourceException, MalformedURLException {
+        var wrapper = new GitWrapper();
+        wrapper.fetch(new URL(NONEXISTENT_OR_PRIVATE_REPO_URL));
     }
 
-    @Test(expected = GitWrapperException.class)
+    @Test(expected = CommitReadException.class)
     @Ignore("With the current Scanner implementation we can't detect this")
-    public void logEmptyRepositoryShouldThrow() throws GitWrapperException {
-        var wrapper = new GitWrapper(EMPTY_REPO_URL);
-        wrapper.fetch();
-        wrapper.log("%H", "\n");
+    public void logEmptyRepositoryShouldThrow() throws CommitSourceException, MalformedURLException {
+        var wrapper = new GitWrapper();
+        wrapper.fetch(new URL(EMPTY_REPO_URL));
+        wrapper.log("%H", "\n", 1, 100);
     }
 
     @Test
-    public void logSampleRepositoryAndCountCommits() throws GitWrapperException, CommitSourceException {
-        var wrapper = new GitWrapper(SAMPLE_REPO_URL);
-        wrapper.fetch();
-        var commitCount = wrapper.log("%H", "\n").count();
+    public void logSampleRepositoryAndCountCommits() throws  CommitSourceException, MalformedURLException {
+        var wrapper = new GitWrapper();
+        wrapper.fetch(new URL(SAMPLE_REPO_URL));
+        var commitCount = wrapper.log("%H", "\n", 1, 100).count();
         assertEquals(3, (long)commitCount);
 
         // Make sure that we can use the commands issued when displaying commits
 
-        var source = new GitSource(wrapper);
-        var readCommits = source.readCommits().count();
+        var source = new GitSource();
+        var readCommits = source.readCommits(new URL(SAMPLE_REPO_URL), 1, 100).count();
         assertEquals((long)commitCount, (long)readCommits);
     }
 }

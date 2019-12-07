@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pchila.commitviewer.core.Commit;
-import pchila.commitviewer.core.CommitSource;
-import pchila.commitviewer.core.CommitSourceException;
+import pchila.commitviewer.core.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -62,7 +60,7 @@ public class GitHubSource implements CommitSource {
     }
 
     private static <U> HttpResponse<String> checkStatusCode(HttpResponse<String> stringHttpResponse) {
-
+        //TODO we should include the status code and message from github api in the exception message
         int statusCode = stringHttpResponse.statusCode();
         if (statusCode < 200 || statusCode >= 400) {
             throw new RuntimeException("Response from github has code " + statusCode);
@@ -72,7 +70,6 @@ public class GitHubSource implements CommitSource {
 
     @Override
     public Stream<Commit> readCommits(URL repositoryUrl, int page, int pageSize) throws CommitSourceException {
-
         HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -83,7 +80,7 @@ public class GitHubSource implements CommitSource {
                     .uri(new URI("https",
                             "api.github.com",
                             mountPath(repositoryUrl.getPath()),
-                            "page="+ page + "&per_page=" + pageSize,
+                            "page=" + page + "&per_page=" + pageSize,
                             null
                     ))
                     .timeout(Duration.ofMinutes(10))
@@ -101,9 +98,9 @@ public class GitHubSource implements CommitSource {
                     .thenAccept(cl -> gitHubCommits.addAll(cl)).join();
             return gitHubCommits.stream().map(GitHubSource::mapToCoreCommit);
         } catch (URISyntaxException e) {
-            throw new CommitSourceException(String.format("Error composing github API URL for repository {}", repositoryUrl), e);
+            throw new CommitReadException(String.format("Error composing github API URL for repository {}", repositoryUrl), e);
         } catch (CompletionException e) {
-            throw new CommitSourceException("Error consuming github response", e);
+            throw new RepositoryNotAvailableException("Error consuming github response", e);
         }
     }
 
@@ -111,7 +108,7 @@ public class GitHubSource implements CommitSource {
 
         var builder = new StringBuilder("/repos");
         builder.append(path);
-        if(!path.endsWith("/"))
+        if (!path.endsWith("/"))
             builder.append("/");
         builder.append("commits");
 
