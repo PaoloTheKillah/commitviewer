@@ -21,7 +21,7 @@ public class Commit {
         this.references = references;
         this.parentHashes = parentHashes;
     }
-    
+
     public String getHash() {
         return hash;
     }
